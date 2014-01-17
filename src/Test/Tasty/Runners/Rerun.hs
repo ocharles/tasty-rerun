@@ -3,7 +3,7 @@ module Test.Tasty.Runners.Rerun (rerunIngredient) where
 
 import Control.Applicative
 import Control.Arrow ((>>>))
-import Control.Monad (join, when)
+import Control.Monad (guard, join, when)
 import Control.Monad.Trans.Class (lift)
 import Data.Foldable (for_)
 import Data.Maybe (catMaybes, fromMaybe)
@@ -58,7 +58,7 @@ instance Tasty.IsOption UpdateLog where
     helpString = untag (Tasty.optionHelp :: Tagged UpdateLog String)
 
 --------------------------------------------------------------------------------
-data Filter = RunEverything | Failures
+data Filter = RunEverything | Failures | Exceptions
 
 
 --------------------------------------------------------------------------------
@@ -71,8 +71,10 @@ instance Tasty.IsOption FilterOption where
                       \runs. Valid options are: everything, failures"
   defaultValue = FilterOption RunEverything
 
+  -- If you update this, please update 'optionHelp' too.
   parseValue "everything" = Just (FilterOption RunEverything)
   parseValue "failures" = Just (FilterOption Failures)
+  parseValue "exceptions" = Just (FilterOption Exceptions)
   parseValue _ = Nothing
 
 
@@ -130,13 +132,22 @@ rerunIngredient (Tasty.TestReporter os f) =
                  ]
 
   ------------------------------------------------------------------------------
-  filterTestTree _ testTree RunEverything _ = Just testTree
-
-  filterTestTree options testTree Failures lastRecord =
+  filterTestTree options testTree filter lastRecord =
     let foldSingle _ name t = \prefix ->
-          case Map.lookup (prefix ++ [name]) lastRecord of
-            Just (Completed False) -> [ Tasty.SingleTest name t ]
-            _ -> []
+          let pertinent = case filter of
+                RunEverything -> True
+
+                Failures ->
+                  case Map.lookup (prefix ++ [name]) lastRecord of
+                    Just (Completed False) -> True
+                    _ -> False
+
+                Exceptions ->
+                  case Map.lookup (prefix ++ [name]) lastRecord of
+                    Just ThrewException -> True
+                    _ -> False
+
+          in [ Tasty.SingleTest name t ] <* guard pertinent
 
         foldGroup name tests = \prefix ->
           [ Tasty.testGroup name (tests (prefix ++ [name])) ]
