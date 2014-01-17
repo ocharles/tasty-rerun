@@ -19,7 +19,9 @@ import qualified Control.Monad.State as State
 import qualified Data.Functor.Compose as Functor
 import qualified Data.IntMap as IntMap
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import qualified Options.Applicative as OptParse
+import qualified Options.Applicative.Types as OptParse
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.Options as Tasty
 import qualified Test.Tasty.Runners as Tasty
@@ -58,25 +60,45 @@ instance Tasty.IsOption UpdateLog where
     helpString = untag (Tasty.optionHelp :: Tagged UpdateLog String)
 
 --------------------------------------------------------------------------------
-data Filter = RunEverything | Failures | Exceptions
+data Filter = Failures | Exceptions | New | Successful
+  deriving (Eq, Ord)
 
+parseFilter :: String -> Maybe Filter
+parseFilter "failures" = Just Failures
+parseFilter "exceptions" = Just Exceptions
+parseFilter "new" = Just New
+parseFilter "successful" = Just Successful
+parseFilter _ = Nothing
 
 --------------------------------------------------------------------------------
-data FilterOption = FilterOption Filter
+everything :: Set.Set Filter
+everything = Set.fromList [ Failures, Exceptions, New, Successful ]
+
+--------------------------------------------------------------------------------
+data FilterOption = FilterOption (Set.Set Filter)
   deriving (Typeable)
 
 instance Tasty.IsOption FilterOption where
   optionName = Tagged "rerun-filter"
+
   optionHelp = Tagged "Which tests to run when comparing against previous test \
-                      \runs. Valid options are: everything, failures"
-  defaultValue = FilterOption RunEverything
+                      \runs. Valid options are: \
+                      \everything, failures, exceptions, new"
 
-  -- If you update this, please update 'optionHelp' too.
-  parseValue "everything" = Just (FilterOption RunEverything)
-  parseValue "failures" = Just (FilterOption Failures)
-  parseValue "exceptions" = Just (FilterOption Exceptions)
-  parseValue _ = Nothing
+  defaultValue = FilterOption everything
 
+  parseValue = fmap (FilterOption . Set.singleton) . parseFilter
+
+  optionCLParser =
+    fmap (FilterOption . Set.fromList) $ many $ OptParse.nullOption $ mconcat
+      [ OptParse.reader parser
+      , OptParse.long (untag (Tasty.optionName :: Tagged FilterOption String))
+      , OptParse.help (untag (Tasty.optionHelp :: Tagged FilterOption String))
+      ]
+    where
+    parser = OptParse.ReadM .
+      maybe (Left (OptParse.ErrorMsg $ "Could not parse filter option")) Right .
+        parseFilter
 
 --------------------------------------------------------------------------------
 data TestResult = Completed Bool | ThrewException
@@ -134,20 +156,14 @@ rerunIngredient (Tasty.TestReporter os f) =
   ------------------------------------------------------------------------------
   filterTestTree options testTree filter lastRecord =
     let foldSingle _ name t = \prefix ->
-          let pertinent = case filter of
-                RunEverything -> True
+          let requiredFilter = case Map.lookup (prefix ++ [name]) lastRecord of
+                Just (Completed False) -> Failures
+                Just ThrewException -> Exceptions
+                Just (Completed True) -> Successful
+                Nothing -> New
 
-                Failures ->
-                  case Map.lookup (prefix ++ [name]) lastRecord of
-                    Just (Completed False) -> True
-                    _ -> False
-
-                Exceptions ->
-                  case Map.lookup (prefix ++ [name]) lastRecord of
-                    Just ThrewException -> True
-                    _ -> False
-
-          in [ Tasty.SingleTest name t ] <* guard pertinent
+          in do guard (requiredFilter `Set.member` filter)
+                return (Tasty.SingleTest name t)
 
         foldGroup name tests = \prefix ->
           [ Tasty.testGroup name (tests (prefix ++ [name])) ]
