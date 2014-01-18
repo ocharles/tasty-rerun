@@ -71,8 +71,8 @@ parseFilter "successful" = Just Successful
 parseFilter _ = Nothing
 
 --------------------------------------------------------------------------------
-everything :: Set.Set Filter
-everything = Set.fromList [ Failures, Exceptions, New, Successful ]
+everything :: [Filter]
+everything = [Failures, Exceptions, New, Successful]
 
 --------------------------------------------------------------------------------
 data FilterOption = FilterOption (Set.Set Filter)
@@ -85,17 +85,21 @@ instance Tasty.IsOption FilterOption where
                       \runs. Valid options are: \
                       \everything, failures, exceptions, new"
 
-  defaultValue = FilterOption everything
+  defaultValue = FilterOption (Set.fromList everything)
 
   parseValue = fmap (FilterOption . Set.singleton) . parseFilter
 
   optionCLParser =
-    fmap (FilterOption . Set.fromList) $ many $ OptParse.nullOption $ mconcat
+    fmap (FilterOption . Set.fromList . provideDefault) $
+    many $ OptParse.nullOption $ mconcat
       [ OptParse.reader parser
       , OptParse.long (untag (Tasty.optionName :: Tagged FilterOption String))
       , OptParse.help (untag (Tasty.optionHelp :: Tagged FilterOption String))
       ]
     where
+    provideDefault [] = everything
+    provideDefault x  = x
+
     parser = OptParse.ReadM .
       maybe (Left (OptParse.ErrorMsg $ "Could not parse filter option")) Right .
         parseFilter
