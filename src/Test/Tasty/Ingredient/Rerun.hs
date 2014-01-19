@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
-module Test.Tasty.Runners.Rerun (rerunIngredient) where
+module Test.Tasty.Ingredient.Rerun (rerunIngredient) where
 
 import Control.Applicative
 import Control.Arrow ((>>>))
