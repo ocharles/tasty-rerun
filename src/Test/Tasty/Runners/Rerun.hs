@@ -133,10 +133,10 @@ rerunIngredient (Tasty.TestReporter os f) =
     testTree' <- maybe (Just testTree) (filterTestTree options testTree filter)
                    <$> tryLoadStateFrom stateFile
 
-    runData <- return $ do
-      filteredTestTree <- testTree'
-      runner <- f options filteredTestTree
-      return (filteredTestTree, runner)
+    let runData = do
+          filteredTestTree <- testTree'
+          runner <- f options filteredTestTree
+          return (filteredTestTree, runner)
 
     case runData of
       Nothing -> return False
