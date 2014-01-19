@@ -5,11 +5,13 @@ import Control.Applicative
 import Control.Arrow ((>>>))
 import Control.Monad (guard, join, when)
 import Control.Monad.Trans.Class (lift)
+import Data.Char (isSpace)
 import Data.Foldable (for_)
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Monoid (mconcat)
 import Data.Proxy (Proxy(..))
 import Data.Semigroup.Applicative (Traversal(..))
+import Data.List.Split (endBy)
 import Data.Tagged (Tagged(..), untag)
 import Data.Typeable (Typeable)
 import System.IO.Error (catchIOError, ioError, isDoesNotExistError)
@@ -81,28 +83,15 @@ newtype FilterOption = FilterOption (Set.Set Filter)
 instance Tasty.IsOption FilterOption where
   optionName = Tagged "rerun-filter"
 
-  optionHelp = Tagged "Which tests to run when comparing against previous test \
-                      \runs. Valid options are: \
-                      \everything, failures, exceptions, new"
+  optionHelp = Tagged "A comma separated list to specify which tests to run when\
+                      \ comparing against previous test runs. Valid options \
+                      \are: everything, failures, exceptions, new"
 
   defaultValue = FilterOption (Set.fromList everything)
 
-  parseValue = fmap (FilterOption . Set.singleton) . parseFilter
-
-  optionCLParser =
-    fmap (FilterOption . Set.fromList . provideDefault) $
-    many $ OptParse.nullOption $ mconcat
-      [ OptParse.reader parser
-      , OptParse.long (untag (Tasty.optionName :: Tagged FilterOption String))
-      , OptParse.help (untag (Tasty.optionHelp :: Tagged FilterOption String))
-      ]
-    where
-    provideDefault [] = everything
-    provideDefault x  = x
-
-    parser = OptParse.ReadM .
-      maybe (Left (OptParse.ErrorMsg $ "Could not parse filter option")) Right .
-        parseFilter
+  parseValue =
+    fmap (FilterOption . Set.fromList) . mapM (parseFilter . trim) . endBy ","
+    where trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
 
 --------------------------------------------------------------------------------
 data TestResult = Completed Bool | ThrewException
