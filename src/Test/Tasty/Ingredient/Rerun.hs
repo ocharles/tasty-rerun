@@ -6,7 +6,7 @@ import Control.Arrow ((>>>))
 import Control.Monad (guard, join, when)
 import Control.Monad.Trans.Class (lift)
 import Data.Char (isSpace)
-import Data.Foldable (for_)
+import Data.Foldable (asum, for_)
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Monoid (mconcat)
 import Data.Proxy (Proxy(..))
@@ -105,42 +105,59 @@ data TestResult = Completed Bool | ThrewException
 -- that have been added since the last test ran, once the 'Tasty.TestTree' has
 -- been filtered.
 --
--- The input list of 'Tasty.Ingredient's specify how the tests can be run
-rerunningTests :: Tasty.Ingredient -> Tasty.Ingredient
+-- The input list of 'Tasty.Ingredient's specify how the tests can be run.
+rerunningTests :: [Tasty.Ingredient] -> Tasty.Ingredient
+rerunningTests ingredients =
+  Tasty.TestManager (rerunOptions ++ existingOptions) $
+    \options testTree -> Just $ do
+      let RerunLogFile stateFile = Tasty.lookupOption options
+      let UpdateLog updateLog = Tasty.lookupOption options
+      let FilterOption filter = Tasty.lookupOption options
 
--- TestManager doesn't give us access to a StatusMap, so there's nothing we
--- can do here. As such, just fall through to the ingredient we're transforming.
-rerunningTests ingredient@Tasty.TestManager {} = ingredient
+      testTree' <- maybe (Just testTree) (filterTestTree options testTree filter)
+                     <$> tryLoadStateFrom stateFile
 
--- If we have a TestReporter, then we can wrap this to watch the StatusMap.
-rerunningTests (Tasty.TestReporter os f) =
-  Tasty.TestManager (rerunOptions ++ os) $ \options testTree -> Just $ do
-    let RerunLogFile stateFile = Tasty.lookupOption options
-    let UpdateLog updateLog = Tasty.lookupOption options
-    let FilterOption filter = Tasty.lookupOption options
+      case testTree' of
+        -- We filtered the test tree down to 0 tests
+        Nothing -> return True
 
-    testTree' <- maybe (Just testTree) (filterTestTree options testTree filter)
-                   <$> tryLoadStateFrom stateFile
+        -- There are tests to run so we try and find an Ingredient to run the
+        -- tests
+        Just filteredTestTree -> do
+          let tryAndRun (Tasty.TestReporter _ f) = do
+                runner <- f options filteredTestTree
+                return $ do
+                  statusMap <- Tasty.launchTestTree options filteredTestTree
+                  let getTestResults =
+                        fmap getConst $
+                        flip State.evalStateT 0 $
+                        Functor.getCompose $
+                        getTraversal $
+                        Tasty.foldTestTree (observeResults statusMap)
+                                           options filteredTestTree
+                  outcome <- runner statusMap
+                  when updateLog (saveStateTo stateFile getTestResults)
+                  return outcome
 
-    let runData = do
-          filteredTestTree <- testTree'
-          runner <- f options filteredTestTree
-          return (filteredTestTree, runner)
+              tryAndRun (Tasty.TestManager _ f) =
+                f options filteredTestTree
 
-    case runData of
-      Nothing -> return False
-      Just (filteredTestTree, runner) -> do
-        statusMap <- Tasty.launchTestTree options filteredTestTree
-        let getTestResults =
-              fmap getConst $
-              flip State.evalStateT 0 $
-              Functor.getCompose $
-              getTraversal $
-              Tasty.foldTestTree (observeResults statusMap)
-                                 options filteredTestTree
-        runner statusMap <* when updateLog (saveStateTo stateFile getTestResults)
+          case asum (map tryAndRun ingredients) of
+            -- No Ingredients chose to run the tests, we should really return
+            -- Nothing, but we've already commited to run by the act of
+            -- filtering the TestTree.
+            Nothing -> return False
+
+            -- Otherwise, an Ingredient did choose to run the tests, so we
+            -- simply run the above constructed IO action.
+            Just e -> e
 
   where
+  existingOptions = flip concatMap ingredients $ \ingredient ->
+    case ingredient of
+      Tasty.TestReporter options _ -> options
+      Tasty.TestManager options _ -> options
+
   rerunOptions = [ Tasty.Option (Proxy :: Proxy RerunLogFile)
                  , Tasty.Option (Proxy :: Proxy UpdateLog)
                  , Tasty.Option (Proxy :: Proxy FilterOption)
