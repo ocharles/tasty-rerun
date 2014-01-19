@@ -27,7 +27,7 @@ import qualified Test.Tasty.Options as Tasty
 import qualified Test.Tasty.Runners as Tasty
 
 --------------------------------------------------------------------------------
-data RerunLogFile = RerunLogFile { rerunLogFile :: FilePath }
+newtype RerunLogFile = RerunLogFile { rerunLogFile :: FilePath }
   deriving (Typeable)
 
 instance Tasty.IsOption RerunLogFile where
@@ -38,7 +38,7 @@ instance Tasty.IsOption RerunLogFile where
 
 
 --------------------------------------------------------------------------------
-data UpdateLog = UpdateLog { updateLog :: Bool }
+newtype UpdateLog = UpdateLog { updateLog :: Bool }
   deriving (Typeable)
 
 instance Tasty.IsOption UpdateLog where
@@ -75,7 +75,7 @@ everything :: [Filter]
 everything = [Failures, Exceptions, New, Successful]
 
 --------------------------------------------------------------------------------
-data FilterOption = FilterOption (Set.Set Filter)
+newtype FilterOption = FilterOption (Set.Set Filter)
   deriving (Typeable)
 
 instance Tasty.IsOption FilterOption where
