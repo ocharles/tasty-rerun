@@ -1,20 +1,22 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Test.Tasty.Ingredient.Rerun (rerunningTests) where
 
+import Prelude hiding (filter)
+
 import Control.Applicative
 import Control.Arrow ((>>>))
-import Control.Monad (guard, join, when)
+import Control.Monad (guard, when)
 import Control.Monad.Trans.Class (lift)
 import Data.Char (isSpace)
-import Data.Foldable (asum, for_)
-import Data.Maybe (catMaybes, fromMaybe)
+import Data.Foldable (asum)
+import Data.Maybe (fromMaybe)
 import Data.Monoid (mconcat)
 import Data.Proxy (Proxy(..))
 import Data.Semigroup.Applicative (Traversal(..))
 import Data.List.Split (endBy)
 import Data.Tagged (Tagged(..), untag)
 import Data.Typeable (Typeable)
-import System.IO.Error (catchIOError, ioError, isDoesNotExistError)
+import System.IO.Error (catchIOError, isDoesNotExistError)
 
 import qualified Control.Concurrent.STM as STM
 import qualified Control.Monad.State as State
@@ -23,13 +25,12 @@ import qualified Data.IntMap as IntMap
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Options.Applicative as OptParse
-import qualified Options.Applicative.Types as OptParse
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.Options as Tasty
 import qualified Test.Tasty.Runners as Tasty
 
 --------------------------------------------------------------------------------
-newtype RerunLogFile = RerunLogFile { rerunLogFile :: FilePath }
+newtype RerunLogFile = RerunLogFile FilePath
   deriving (Typeable)
 
 instance Tasty.IsOption RerunLogFile where
@@ -40,7 +41,7 @@ instance Tasty.IsOption RerunLogFile where
 
 
 --------------------------------------------------------------------------------
-newtype UpdateLog = UpdateLog { updateLog :: Bool }
+newtype UpdateLog = UpdateLog Bool
   deriving (Typeable)
 
 instance Tasty.IsOption UpdateLog where
@@ -188,7 +189,7 @@ rerunningTests ingredients =
          -- This state is impossible as a TestTree is either a single test
          -- or a test group. Test groups are folded into a single list element
          -- and single tests to 0-or-1. Thus I believe this state is impossible.
-         (x:xs) ->
+         _ ->
             error "tasty-rerun found multiple tests when one was expected. \
                   \If you can produce this error, please report this as a bug!"
 
@@ -215,7 +216,7 @@ rerunningTests ingredients =
               Tasty.Done result ->
                 return (Completed (Tasty.resultSuccessful result))
 
-              Tasty.Exception e -> return ThrewException
+              Tasty.Exception _ -> return ThrewException
 
               _ -> STM.retry
 
