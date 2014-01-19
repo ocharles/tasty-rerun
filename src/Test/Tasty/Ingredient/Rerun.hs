@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
-module Test.Tasty.Ingredient.Rerun (rerunIngredient) where
+module Test.Tasty.Ingredient.Rerun (rerunningTests) where
 
 import Control.Applicative
 import Control.Arrow ((>>>))
@@ -117,14 +117,14 @@ data TestResult = Completed Bool | ThrewException
 -- been filtered.
 --
 -- The input list of 'Tasty.Ingredient's specify how the tests can be run
-rerunIngredient :: Tasty.Ingredient -> Tasty.Ingredient
+rerunningTests :: Tasty.Ingredient -> Tasty.Ingredient
 
 -- TestManager doesn't give us access to a StatusMap, so there's nothing we
 -- can do here. As such, just fall through to the ingredient we're transforming.
-rerunIngredient ingredient@Tasty.TestManager {} = ingredient
+rerunningTests ingredient@Tasty.TestManager {} = ingredient
 
 -- If we have a TestReporter, then we can wrap this to watch the StatusMap.
-rerunIngredient (Tasty.TestReporter os f) =
+rerunningTests (Tasty.TestReporter os f) =
   Tasty.TestManager (rerunOptions ++ os) $ \options testTree -> Just $ do
     let RerunLogFile stateFile = Tasty.lookupOption options
     let UpdateLog updateLog = Tasty.lookupOption options
