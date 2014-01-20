@@ -12,7 +12,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Test.Tasty.Ingredient.Rerun
+  exposed-modules:     Test.Tasty.Ingredients.Rerun
   build-depends:
     base >=4.6 && <4.7,
     containers >= 0.5.0.0,
