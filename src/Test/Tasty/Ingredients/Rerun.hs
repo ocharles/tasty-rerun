@@ -5,15 +5,16 @@ import Prelude hiding (filter)
 
 import Control.Applicative
 import Control.Arrow ((>>>))
+import Control.Exception (throwIO)
 import Control.Monad (guard, when)
 import Control.Monad.Trans.Class (lift)
 import Data.Char (isSpace)
 import Data.Foldable (asum)
+import Data.List.Split (endBy)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (mconcat)
 import Data.Proxy (Proxy(..))
 import Data.Semigroup.Applicative (Traversal(..))
-import Data.List.Split (endBy)
 import Data.Tagged (Tagged(..), untag)
 import Data.Typeable (Typeable)
 import System.IO.Error (catchIOError, isDoesNotExistError)
@@ -27,6 +28,7 @@ import qualified Data.Set as Set
 import qualified Options.Applicative as OptParse
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.Options as Tasty
+import qualified Test.Tasty.Providers as Tasty
 import qualified Test.Tasty.Runners as Tasty
 
 --------------------------------------------------------------------------------
@@ -181,9 +183,19 @@ rerunningTests ingredients =
         foldGroup name tests = \prefix ->
           [ Tasty.testGroup name (tests (prefix ++ [name])) ]
 
-        treeFold = Tasty.trivialFold { Tasty.foldSingle = foldSingle
-                                     , Tasty.foldGroup = foldGroup
-                                     }
+        foldResource rSpec k = \prefix ->
+          let peek = k (error "Resources unavailable during test tree filtering")
+          in case peek prefix of
+               [x] -> [ Tasty.WithResource rSpec (\io -> head $ k io prefix) ]
+               []  -> []
+               _   -> error "Resource claims to initialize multiple tests. \
+                            \Please report this as a bug."
+
+        treeFold = Tasty.TreeFold { Tasty.foldSingle = foldSingle
+                                  , Tasty.foldGroup = foldGroup
+                                  , Tasty.foldResource = foldResource
+                                  }
+
     in case Tasty.foldTestTree treeFold options testTree [] of
          [t] -> Just t
          [] -> Nothing
