@@ -100,13 +100,15 @@ data TestResult = Completed Bool | ThrewException
 
 
 --------------------------------------------------------------------------------
--- | This 'Tasty.Ingredient' transformers adds various @--rerun@ options to your
+-- | This 'Tasty.Ingredient' transformer adds various @--rerun@ options to your
 -- test program. These flags add stateful execution of your test suite, allowing
 -- you to rerun only tests that are failing from the previous run, or tests that
 -- that have been added since the last test ran, once the 'Tasty.TestTree' has
 -- been filtered.
 --
--- The input list of 'Tasty.Ingredient's specify how the tests can be run.
+-- The input list of 'Tasty.Ingredient's specifies the 'Tasty.Ingredients's that
+-- will actually work with the filtered 'Tasty.TestTree'. Normally, you'll want
+-- at least 'Tasty.Test.Runners.consoleTestReporter'.
 rerunningTests :: [Tasty.Ingredient] -> Tasty.Ingredient
 rerunningTests ingredients =
   Tasty.TestManager (rerunOptions ++ existingOptions) $
