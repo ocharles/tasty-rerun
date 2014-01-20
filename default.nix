@@ -6,7 +6,7 @@ in cabal.mkDerivation (self: {
   pname = "tasty-rerun";
   version = "1.0.0";
   src = ./.;
-  buildDepends = [ reducers tasty ];
+  buildDepends = [ reducers tasty split ];
   buildTools = [ cabalInstall_1_18_0_2 ];
-  testDepends = [ tastyHunit tastyQuickcheck tastySmallcheck split ];
+  testDepends = [ tastyHunit tastyQuickcheck tastySmallcheck ];
 })
