@@ -47,7 +47,7 @@ newtype UpdateLog = UpdateLog Bool
 instance Tasty.IsOption UpdateLog where
   optionName = Tagged "rerun-update"
 
-  optionHelp = Tagged "If present the log file will be update, otherwise it \
+  optionHelp = Tagged "If present the log file will be updated, otherwise it \
                       \will be left unchanged"
 
   defaultValue = UpdateLog False
