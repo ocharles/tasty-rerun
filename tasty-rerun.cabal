@@ -9,6 +9,8 @@ copyright:           Oliver Charles (c) 2014
 category:            Testing
 build-type:          Simple
 cabal-version:       >=1.10
+extra-source-files:
+  Changelog.md
 
 synopsis:
   Run tests by filtering the test tree depending on the result of previous test
