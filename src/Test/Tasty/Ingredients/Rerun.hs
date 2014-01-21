@@ -5,8 +5,7 @@ import Prelude hiding (filter)
 
 import Control.Applicative
 import Control.Arrow ((>>>))
-import Control.Exception (throwIO)
-import Control.Monad (guard, when)
+import Control.Monad (when)
 import Control.Monad.Trans.Class (lift)
 import Data.Char (isSpace)
 import Data.Foldable (asum)
@@ -26,7 +25,6 @@ import qualified Data.IntMap as IntMap
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Options.Applicative as OptParse
-import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.Options as Tasty
 import qualified Test.Tasty.Providers as Tasty
 import qualified Test.Tasty.Runners as Tasty
@@ -119,44 +117,35 @@ rerunningTests ingredients =
       let UpdateLog updateLog = Tasty.lookupOption options
       let FilterOption filter = Tasty.lookupOption options
 
-      testTree' <- maybe (Just testTree) (filterTestTree options testTree filter)
-                     <$> tryLoadStateFrom stateFile
+      filteredTestTree <- maybe testTree (filterTestTree testTree filter)
+                           <$> tryLoadStateFrom stateFile
 
-      case testTree' of
-        -- We filtered the test tree down to 0 tests
-        Nothing -> return True
+      let tryAndRun (Tasty.TestReporter _ f) = do
+            runner <- f options filteredTestTree
+            return $ do
+              statusMap <- Tasty.launchTestTree options filteredTestTree
+              let getTestResults =
+                    fmap getConst $
+                    flip State.evalStateT 0 $
+                    Functor.getCompose $
+                    getTraversal $
+                    Tasty.foldTestTree (observeResults statusMap)
+                                        options filteredTestTree
+              outcome <- runner statusMap
+              when updateLog (saveStateTo stateFile getTestResults)
+              return outcome
 
-        -- There are tests to run so we try and find an Ingredient to run the
-        -- tests
-        Just filteredTestTree -> do
-          let tryAndRun (Tasty.TestReporter _ f) = do
-                runner <- f options filteredTestTree
-                return $ do
-                  statusMap <- Tasty.launchTestTree options filteredTestTree
-                  let getTestResults =
-                        fmap getConst $
-                        flip State.evalStateT 0 $
-                        Functor.getCompose $
-                        getTraversal $
-                        Tasty.foldTestTree (observeResults statusMap)
-                                           options filteredTestTree
-                  outcome <- runner statusMap
-                  when updateLog (saveStateTo stateFile getTestResults)
-                  return outcome
+          tryAndRun (Tasty.TestManager _ f) =
+            f options filteredTestTree
 
-              tryAndRun (Tasty.TestManager _ f) =
-                f options filteredTestTree
-
-          case asum (map tryAndRun ingredients) of
-            -- No Ingredients chose to run the tests, we should really return
-            -- Nothing, but we've already commited to run by the act of
-            -- filtering the TestTree.
-            Nothing -> return False
-
-            -- Otherwise, an Ingredient did choose to run the tests, so we
-            -- simply run the above constructed IO action.
-            Just e -> e
-
+      case asum (map tryAndRun ingredients) of
+        -- No Ingredients chose to run the tests, we should really return
+        -- Nothing, but we've already commited to run by the act of
+        -- filtering the TestTree.
+        Nothing -> return False
+        -- Otherwise, an Ingredient did choose to run the tests, so we
+        -- simply run the above constructed IO action.
+        Just e -> e
   where
   existingOptions = flip concatMap ingredients $ \ingredient ->
     case ingredient of
@@ -169,45 +158,31 @@ rerunningTests ingredients =
                  ]
 
   ------------------------------------------------------------------------------
-  filterTestTree options testTree filter lastRecord =
-    let foldSingle _ name t = \prefix ->
+  filterTestTree testTree filter lastRecord =
+    let go prefix (Tasty.SingleTest name t) =
           let requiredFilter = case Map.lookup (prefix ++ [name]) lastRecord of
                 Just (Completed False) -> Failures
                 Just ThrewException -> Exceptions
                 Just (Completed True) -> Successful
                 Nothing -> New
+          in if (requiredFilter `Set.member` filter)
+               then Tasty.SingleTest name t
+               else Tasty.TestGroup "" []
 
-          in do guard (requiredFilter `Set.member` filter)
-                return (Tasty.SingleTest name t)
+        go prefix (Tasty.TestGroup name tests) =
+          Tasty.TestGroup name (go (prefix ++ [name]) <$> tests)
 
-        foldGroup name tests = \prefix ->
-          [ Tasty.testGroup name (tests (prefix ++ [name])) ]
+        go prefix (Tasty.PlusTestOptions f t) =
+          Tasty.PlusTestOptions f (go prefix t)
 
-        foldResource rSpec k = \prefix ->
-          let peek = k (error "Resources unavailable during test tree filtering")
-          in case peek prefix of
-               [x] -> [ Tasty.WithResource rSpec (\io -> head $ k io prefix) ]
-               []  -> []
-               _   -> error "Resource claims to initialize multiple tests. \
-                            \Please report this as a bug."
+        go prefix (Tasty.WithResource rSpec k) =
+          Tasty.WithResource rSpec (go prefix <$> k)
 
-        treeFold = Tasty.TreeFold { Tasty.foldSingle = foldSingle
-                                  , Tasty.foldGroup = foldGroup
-                                  , Tasty.foldResource = foldResource
-                                  }
+        go prefix (Tasty.AskOptions k) =
+          Tasty.AskOptions (go prefix <$> k)
 
-    in case Tasty.foldTestTree treeFold options testTree [] of
-         [t] -> Just t
-         [] -> Nothing
+    in go [] testTree
 
-         -- This state is impossible as a TestTree is either a single test
-         -- or a test group. Test groups are folded into a single list element
-         -- and single tests to 0-or-1. Thus I believe this state is impossible.
-         _ ->
-            error "tasty-rerun found multiple tests when one was expected. \
-                  \If you can produce this error, please report this as a bug!"
-
-  ------------------------------------------------------------------------------
   tryLoadStateFrom filePath = do
     fileContents <- (Just <$> readFile filePath)
                       `catchIOError` (\e -> if isDoesNotExistError e
