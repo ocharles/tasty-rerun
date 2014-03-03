@@ -26,7 +26,6 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Options.Applicative as OptParse
 import qualified Test.Tasty.Options as Tasty
-import qualified Test.Tasty.Providers as Tasty
 import qualified Test.Tasty.Runners as Tasty
 
 --------------------------------------------------------------------------------
@@ -123,7 +122,11 @@ rerunningTests ingredients =
       let tryAndRun (Tasty.TestReporter _ f) = do
             runner <- f options filteredTestTree
             return $ do
-              statusMap <- Tasty.launchTestTree options filteredTestTree
+              (statusMap, outcome) <-
+                Tasty.launchTestTree options filteredTestTree $ \sMap ->
+                  do outcome <- runner sMap
+                     return (sMap, outcome)
+
               let getTestResults =
                     fmap getConst $
                     flip State.evalStateT 0 $
@@ -131,7 +134,7 @@ rerunningTests ingredients =
                     getTraversal $
                     Tasty.foldTestTree (observeResults statusMap)
                                         options filteredTestTree
-              outcome <- runner statusMap
+
               when updateLog (saveStateTo stateFile getTestResults)
               return outcome
 
@@ -202,10 +205,10 @@ rerunningTests ingredients =
           status <- lift $ STM.atomically $ do
             status <- lookupStatus i
             case status of
-              Tasty.Done result ->
-                return (Completed (Tasty.resultSuccessful result))
-
-              Tasty.Exception _ -> return ThrewException
+              Tasty.Done result -> return $
+                case Tasty.resultOutcome result of
+                  Tasty.Failure (Tasty.TestThrewException _) -> ThrewException
+                  _ -> Completed (Tasty.resultSuccessful result)
 
               _ -> STM.retry
 
