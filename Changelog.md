@@ -1,3 +1,7 @@
+# 1.1.1
+
+* Update to work with tasty >= 0.8
+
 # 1.1.0
 
 * The `TestTree` is filtered using a custom traversal now, rather than a
