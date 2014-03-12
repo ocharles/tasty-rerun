@@ -1,3 +1,7 @@
+# 1.1.2
+
+* Allow base 4.7 for building with GHC 7.8
+
 # 1.1.1
 
 * Update to work with tasty >= 0.8
