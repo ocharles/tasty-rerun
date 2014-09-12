@@ -1,3 +1,7 @@
+# 1.1.3
+
+* Supports tasty =< 0.11
+
 # 1.1.2
 
 * Allow base 4.7 for building with GHC 7.8

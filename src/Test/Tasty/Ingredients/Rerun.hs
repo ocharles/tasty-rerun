@@ -113,8 +113,8 @@ rerunningTests ingredients =
   Tasty.TestManager (rerunOptions ++ existingOptions) $
     \options testTree -> Just $ do
       let RerunLogFile stateFile = Tasty.lookupOption options
-      let UpdateLog updateLog = Tasty.lookupOption options
-      let FilterOption filter = Tasty.lookupOption options
+          UpdateLog updateLog = Tasty.lookupOption options
+          FilterOption filter = Tasty.lookupOption options
 
       filteredTestTree <- maybe testTree (filterTestTree testTree filter)
                            <$> tryLoadStateFrom stateFile
@@ -124,8 +124,8 @@ rerunningTests ingredients =
             return $ do
               (statusMap, outcome) <-
                 Tasty.launchTestTree options filteredTestTree $ \sMap ->
-                  do outcome <- runner sMap
-                     return (sMap, outcome)
+                  do f' <- runner sMap
+                     return (fmap (\a -> (sMap, a)) . f')
 
               let getTestResults =
                     fmap getConst $

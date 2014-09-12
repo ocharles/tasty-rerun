@@ -1,9 +1,9 @@
 with import <nixpkgs> {};
 let haskellPackages = pkgs.haskellPackages.override {
-      extraPrefs = self: {
+      extension = self: super: {
         tastyRerun = self.callPackage ./. {};
       };
     };
 in lib.overrideDerivation haskellPackages.tastyRerun (attrs: {
-     buildInputs = [ haskellPackages.cabalInstall_1_18_0_3 ] ++ attrs.buildInputs;
+     buildInputs = [ haskellPackages.cabalInstall ] ++ attrs.buildInputs;
    })
