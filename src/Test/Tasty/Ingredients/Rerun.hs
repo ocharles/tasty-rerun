@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Test.Tasty.Ingredients.Rerun (rerunningTests) where
 
 import Prelude hiding (filter)

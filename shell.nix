@@ -1,9 +1,2 @@
-with import <nixpkgs> {};
-let haskellPackages = pkgs.haskellPackages.override {
-      extension = self: super: {
-        tastyRerun = self.callPackage ./. {};
-      };
-    };
-in lib.overrideDerivation haskellPackages.tastyRerun (attrs: {
-     buildInputs = [ haskellPackages.cabalInstall ] ++ attrs.buildInputs;
-   })
+with (import <nixpkgs> {}).pkgs;
+(haskell-ng.packages.ghc7101.callPackage ./. {}).env

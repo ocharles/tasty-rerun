@@ -3,7 +3,7 @@
 }:
 mkDerivation {
   pname = "tasty-rerun";
-  version = "1.1.3";
+  version = "1.1.4";
   src = ./.;
   buildDepends = [
     base containers mtl optparse-applicative reducers split stm tagged
