@@ -1,3 +1,7 @@
+# 1.1.5
+
+* Supports tasty < 0.12.
+
 # 1.1.4
 
 * Supports base <= 4.9, tagged <= 0.9
