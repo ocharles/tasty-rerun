@@ -5,7 +5,7 @@ let pkg = haskellngPackages.callPackage
              }:
              mkDerivation {
                pname = "tasty-rerun";
-               version = "1.1.4";
+               version = "1.1.6";
                src = ./.;
                buildDepends = [
                  base containers mtl optparse-applicative reducers split stm tagged
