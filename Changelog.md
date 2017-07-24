@@ -1,3 +1,7 @@
+# 1.1.7
+
+* Allow base < 4.11.
+
 # 1.1.6
 
 * Allow base 4.9 for building with GHC 8.0
