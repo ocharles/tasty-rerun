@@ -144,7 +144,7 @@ rerunningTests ingredients =
 
       case asum (map tryAndRun ingredients) of
         -- No Ingredients chose to run the tests, we should really return
-        -- Nothing, but we've already commited to run by the act of
+        -- Nothing, but we've already committed to run by the act of
         -- filtering the TestTree.
         Nothing -> return False
         -- Otherwise, an Ingredient did choose to run the tests, so we
