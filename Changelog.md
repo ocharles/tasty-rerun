@@ -1,3 +1,7 @@
+# 1.1.8
+
+* Bump upper bound of tasty.
+
 # 1.1.7
 
 * Allow base < 4.11.
