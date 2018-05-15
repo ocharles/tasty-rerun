@@ -1,3 +1,7 @@
+# 1.1.12
+
+* Bump upper bound of tasty.
+
 # 1.1.11
 
 * Bump upper bound of base.
