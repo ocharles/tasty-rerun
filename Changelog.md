@@ -1,3 +1,7 @@
+# Unreleased
+
+* Bump upper bound of base.
+
 # 1.1.12
 
 * Bump upper bound of tasty.
