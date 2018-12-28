@@ -1,3 +1,7 @@
+# Unreleased
+
+* Support tasty 1.2.
+
 # 1.1.13
 
 * Bump upper bound of base.
