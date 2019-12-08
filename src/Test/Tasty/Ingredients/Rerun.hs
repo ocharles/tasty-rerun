@@ -14,7 +14,6 @@ import Data.List.Split (endBy)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (mconcat)
 import Data.Proxy (Proxy(..))
-import Data.Semigroup.Applicative (Traversal(..))
 import Data.Tagged (Tagged(..), untag)
 import Data.Typeable (Typeable)
 import System.IO.Error (catchIOError, isDoesNotExistError)
@@ -132,7 +131,7 @@ rerunningTests ingredients =
                     fmap getConst $
                     flip State.evalStateT 0 $
                     Functor.getCompose $
-                    getTraversal $
+                    Tasty.getTraversal $
                     Tasty.foldTestTree (observeResults statusMap)
                                         options filteredTestTree
 
@@ -203,7 +202,7 @@ rerunningTests ingredients =
 
   ------------------------------------------------------------------------------
   observeResults statusMap =
-    let foldSingle _ name _ = Traversal $ Functor.Compose $ do
+    let foldSingle _ name _ = Tasty.Traversal $ Functor.Compose $ do
           i <- State.get
 
           status <- lift $ STM.atomically $ do
@@ -218,8 +217,8 @@ rerunningTests ingredients =
 
           Const (Map.singleton [name] status) <$ State.modify (+ 1)
 
-        foldGroup name children = Traversal $ Functor.Compose $ do
-          Const soFar <- Functor.getCompose $ getTraversal children
+        foldGroup name children = Tasty.Traversal $ Functor.Compose $ do
+          Const soFar <- Functor.getCompose $ Tasty.getTraversal children
           pure $ Const (Map.mapKeys (name :) soFar)
 
     in Tasty.trivialFold
