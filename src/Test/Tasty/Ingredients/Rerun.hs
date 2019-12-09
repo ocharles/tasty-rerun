@@ -110,7 +110,7 @@ data TestResult = Completed Bool | ThrewException
 -- at least 'Tasty.Test.Runners.consoleTestReporter'.
 rerunningTests :: [Tasty.Ingredient] -> Tasty.Ingredient
 rerunningTests ingredients =
-  Tasty.TestManager (rerunOptions ++ existingOptions) $
+  Tasty.TestManager (rerunOptions ++ Tasty.ingredientsOptions ingredients) $
     \options testTree -> Just $ do
       let RerunLogFile stateFile = Tasty.lookupOption options
           UpdateLog updateLog = Tasty.lookupOption options
@@ -150,11 +150,6 @@ rerunningTests ingredients =
         -- simply run the above constructed IO action.
         Just e -> e
   where
-  existingOptions = flip concatMap ingredients $ \ingredient ->
-    case ingredient of
-      Tasty.TestReporter options _ -> options
-      Tasty.TestManager options _ -> options
-
   rerunOptions = [ Tasty.Option (Proxy :: Proxy RerunLogFile)
                  , Tasty.Option (Proxy :: Proxy UpdateLog)
                  , Tasty.Option (Proxy :: Proxy FilterOption)
