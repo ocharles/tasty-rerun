@@ -13,8 +13,7 @@ extra-source-files:
   Changelog.md
 
 synopsis:
-  Run tests by filtering the test tree depending on the result of previous test
-  runs
+  Rerun only tests which failed in a previous test run
 
 description:
   This ingredient adds the ability to run tests by first filtering the test tree
