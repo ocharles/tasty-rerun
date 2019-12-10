@@ -8,13 +8,12 @@ import Control.Applicative
 import Control.Arrow ((>>>))
 import Control.Monad (when)
 import Control.Monad.Trans.Class (lift)
-import Data.Char (isSpace)
+import Data.Char (isSpace, toLower)
 import Data.Foldable (asum)
+import Data.List (intercalate)
 import Data.List.Split (endBy)
 import Data.Maybe (fromMaybe)
-import Data.Monoid (mconcat)
 import Data.Proxy (Proxy(..))
-import Data.Tagged (Tagged(..), untag)
 import Data.Typeable (Typeable)
 import System.IO.Error (catchIOError, isDoesNotExistError)
 
@@ -33,65 +32,49 @@ newtype RerunLogFile = RerunLogFile FilePath
   deriving (Typeable)
 
 instance Tasty.IsOption RerunLogFile where
-  optionName = Tagged "rerun-log-file"
-  optionHelp = Tagged "The path to which rerun's state file should be saved"
+  optionName = return "rerun-log-file"
+  optionHelp = return "Location of the log file (default: .tasty-rerun-log)"
   defaultValue = RerunLogFile ".tasty-rerun-log"
   parseValue = Just . RerunLogFile
-
+  optionCLParser = Tasty.mkOptionCLParser (OptParse.metavar "FILE")
 
 --------------------------------------------------------------------------------
 newtype UpdateLog = UpdateLog Bool
   deriving (Typeable)
 
 instance Tasty.IsOption UpdateLog where
-  optionName = Tagged "rerun-update"
-
-  optionHelp = Tagged "If present the log file will be updated, otherwise it \
-                      \will be left unchanged"
-
+  optionName = return "rerun-update"
+  optionHelp = return "Update the log file to reflect latest test outcomes"
   defaultValue = UpdateLog False
-
-  parseValue = Just . UpdateLog . const True
-
-  optionCLParser = fmap UpdateLog $ OptParse.switch $ mconcat
-    [ OptParse.long name
-    , OptParse.help helpString
-    ]
-    where
-    name = untag (Tasty.optionName :: Tagged UpdateLog String)
-    helpString = untag (Tasty.optionHelp :: Tagged UpdateLog String)
+  parseValue = fmap UpdateLog . Tasty.safeReadBool
+  optionCLParser = Tasty.mkFlagCLParser mempty (UpdateLog True)
 
 --------------------------------------------------------------------------------
 data Filter = Failures | Exceptions | New | Successful
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Enum, Bounded, Show)
 
 parseFilter :: String -> Maybe Filter
-parseFilter "failures" = Just Failures
-parseFilter "exceptions" = Just Exceptions
-parseFilter "new" = Just New
-parseFilter "successful" = Just Successful
-parseFilter _ = Nothing
+parseFilter s = lookup s (map (\x -> (map toLower (show x), x)) everything)
 
 --------------------------------------------------------------------------------
 everything :: [Filter]
-everything = [Failures, Exceptions, New, Successful]
+everything = [minBound..maxBound]
 
 --------------------------------------------------------------------------------
 newtype FilterOption = FilterOption (Set.Set Filter)
   deriving (Typeable)
 
 instance Tasty.IsOption FilterOption where
-  optionName = Tagged "rerun-filter"
-
-  optionHelp = Tagged "A comma separated list to specify which tests to run when\
-                      \ comparing against previous test runs. Valid options \
-                      \are: everything, failures, exceptions, new"
-
+  optionName = return "rerun-filter"
+  optionHelp = return
+    $  "Read the log file and rerun only tests from a given comma-separated list of categories: "
+    ++ map toLower (intercalate ", " (map show everything))
+    ++ ". If this option is omitted or the log file is missing, rerun everything."
   defaultValue = FilterOption (Set.fromList everything)
-
   parseValue =
     fmap (FilterOption . Set.fromList) . mapM (parseFilter . trim) . endBy ","
     where trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
+  optionCLParser = Tasty.mkOptionCLParser (OptParse.metavar "CATEGORIES")
 
 --------------------------------------------------------------------------------
 data TestResult = Completed Bool | ThrewException
@@ -150,9 +133,9 @@ rerunningTests ingredients =
         -- simply run the above constructed IO action.
         Just e -> e
   where
-  rerunOptions = [ Tasty.Option (Proxy :: Proxy RerunLogFile)
-                 , Tasty.Option (Proxy :: Proxy UpdateLog)
+  rerunOptions = [ Tasty.Option (Proxy :: Proxy UpdateLog)
                  , Tasty.Option (Proxy :: Proxy FilterOption)
+                 , Tasty.Option (Proxy :: Proxy RerunLogFile)
                  ]
 
   ------------------------------------------------------------------------------
