@@ -83,15 +83,40 @@ data TestResult = Completed Bool | ThrewException
 
 
 --------------------------------------------------------------------------------
--- | This 'Tasty.Ingredient' transformer adds various @--rerun@ options to your
--- test program. These flags add stateful execution of your test suite, allowing
--- you to rerun only tests that are failing from the previous run, or tests that
--- that have been added since the last test ran, once the 'Tasty.TestTree' has
--- been filtered.
+-- | This 'Tasty.Ingredient' transformer allows to control
+-- which tests to run depending on their previous outcomes.
+-- For example, you can rerun only failing tests or only new tests.
+-- The behaviour is controlled by command-line options:
 --
--- The input list of 'Tasty.Ingredient's specifies the 'Tasty.Ingredients's that
--- will actually work with the filtered 'Tasty.TestTree'. Normally, you'll want
--- at least 'Tasty.Test.Runners.consoleTestReporter'.
+-- * @--rerun-update@ @ @
+--
+--     Update the log file to reflect latest test outcomes.
+--
+-- * @--rerun-filter@ @CATEGORIES@
+--
+--     Read the log file and rerun only tests from a given
+--     comma-separated list of categories: @failures@,
+--     @exceptions@, @new@, @successful@. If this option is
+--     omitted or the log file is missing, rerun everything.
+--
+-- * @--rerun-log-file@ @FILE@
+--
+--     Location of the log file (default: @.tasty-rerun-log@).
+--
+-- Usage example:
+--
+-- > import Test.Tasty
+-- > import Test.Tasty.Runners
+-- > import Test.Tasty.Ingredients.Rerun
+-- >
+-- > main :: IO ()
+-- > main =
+-- >   defaultMainWithIngredients
+-- >     [ rerunningTests [ listingTests, consoleTestReporter ] ]
+-- >     tests
+-- >
+-- > tests :: TestTree
+-- > tests = undefined
 rerunningTests :: [Tasty.Ingredient] -> Tasty.Ingredient
 rerunningTests ingredients =
   Tasty.TestManager (rerunOptions ++ Tasty.ingredientsOptions ingredients) $
