@@ -1,3 +1,8 @@
+# 1.1.15
+
+* Bump upper bound of base.
+* Restore missing -j command-line option.
+
 # 1.1.14
 
 * Support tasty 1.2.

@@ -1,11 +1,12 @@
 name:                tasty-rerun
-version:             1.1.14
+version:             1.1.15
 homepage:            http://github.com/ocharles/tasty-rerun
 license:             BSD3
 license-file:        LICENSE
 author:              Oliver Charles
 maintainer:          ollie@ocharles.org.uk
-copyright:           Oliver Charles (c) 2014
+copyright:           Oliver Charles (c) 2014,
+                     Andrew Lelechenko (c) 2019
 category:            Testing
 build-type:          Simple
 cabal-version:       >=1.10
