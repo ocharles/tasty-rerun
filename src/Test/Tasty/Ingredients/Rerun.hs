@@ -165,6 +165,7 @@ rerunningTests ingredients =
                  ]
 
   ------------------------------------------------------------------------------
+  filterTestTree :: Tasty.TestTree -> Set.Set Filter -> Map.Map [String] TestResult -> Tasty.TestTree
   filterTestTree testTree filter lastRecord =
     let go prefix (Tasty.SingleTest name t) =
           let requiredFilter = case Map.lookup (prefix ++ [name]) lastRecord of
@@ -193,6 +194,7 @@ rerunningTests ingredients =
 
     in go [] testTree
 
+  tryLoadStateFrom :: FilePath -> IO (Maybe (Map.Map [String] TestResult))
   tryLoadStateFrom filePath = do
     fileContents <- (Just <$> readFile filePath)
                       `catchIOError` (\e -> if isDoesNotExistError e
@@ -201,10 +203,14 @@ rerunningTests ingredients =
     return (read <$> fileContents)
 
   ------------------------------------------------------------------------------
+  saveStateTo :: FilePath -> IO (Map.Map [String] TestResult) -> IO ()
   saveStateTo filePath getTestResults =
     getTestResults >>= (show >>> writeFile filePath)
 
   ------------------------------------------------------------------------------
+  observeResults
+    :: IntMap.IntMap (STM.TVar Tasty.Status)
+    -> Tasty.TreeFold (Tasty.Traversal (Functor.Compose (State.StateT Int IO) (Const (Map.Map [String] TestResult))))
   observeResults statusMap =
     let foldSingle _ name _ = Tasty.Traversal $ Functor.Compose $ do
           i <- State.get
