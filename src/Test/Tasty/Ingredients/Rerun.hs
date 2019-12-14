@@ -89,6 +89,20 @@ instance Tasty.IsOption AllOnSuccess where
   optionCLParser = Tasty.mkFlagCLParser mempty (AllOnSuccess True)
 
 --------------------------------------------------------------------------------
+newtype Rerun = Rerun { unRerun :: Bool }
+  deriving (Typeable)
+
+instance Tasty.IsOption Rerun where
+  optionName = return "rerun"
+  optionHelp = return "Rerun only tests, which failed during the last run. If the last run was successful, execute a full test suite afresh. A shortcut for --rerun-update --rerun-filter failures,exceptions --rerun-all-on-success"
+  defaultValue = Rerun False
+  parseValue = fmap Rerun . Tasty.safeReadBool
+  optionCLParser = Tasty.mkFlagCLParser mempty (Rerun True)
+
+rerunMeaning :: (UpdateLog, AllOnSuccess, FilterOption)
+rerunMeaning = (UpdateLog True, AllOnSuccess True, FilterOption (Set.fromList [Failures, Exceptions]))
+
+--------------------------------------------------------------------------------
 data TestResult = Completed Bool | ThrewException
   deriving (Read, Show)
 
@@ -133,9 +147,9 @@ rerunningTests ingredients =
   Tasty.TestManager (rerunOptions ++ Tasty.ingredientsOptions ingredients) $
     \options testTree -> Just $ do
       let RerunLogFile stateFile = Tasty.lookupOption options
-          UpdateLog updateLog = Tasty.lookupOption options
-          AllOnSuccess allOnSuccess = Tasty.lookupOption options
-          FilterOption filter = Tasty.lookupOption options
+          (UpdateLog updateLog, AllOnSuccess allOnSuccess, FilterOption filter)
+            | unRerun (Tasty.lookupOption options) = rerunMeaning
+            | otherwise = (Tasty.lookupOption options, Tasty.lookupOption options, Tasty.lookupOption options)
 
       let nonEmptyFold = Tasty.trivialFold { Tasty.foldSingle = \_ _ _ -> Any True }
           nullTestTree = not . getAny . Tasty.foldTestTree nonEmptyFold options
@@ -175,7 +189,8 @@ rerunningTests ingredients =
         -- simply run the above constructed IO action.
         Just e -> e
   where
-  rerunOptions = [ Tasty.Option (Proxy :: Proxy UpdateLog)
+  rerunOptions = [ Tasty.Option (Proxy :: Proxy Rerun)
+                 , Tasty.Option (Proxy :: Proxy UpdateLog)
                  , Tasty.Option (Proxy :: Proxy FilterOption)
                  , Tasty.Option (Proxy :: Proxy AllOnSuccess)
                  , Tasty.Option (Proxy :: Proxy RerunLogFile)
