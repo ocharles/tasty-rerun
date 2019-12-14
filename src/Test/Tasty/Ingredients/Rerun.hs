@@ -13,7 +13,7 @@ import Data.Foldable (asum)
 import Data.List (intercalate)
 import Data.List.Split (endBy)
 import Data.Maybe (fromMaybe)
-import Data.Monoid (mempty)
+import Data.Monoid (Any(..), mempty)
 import Data.Proxy (Proxy(..))
 import Data.Typeable (Typeable)
 import System.IO.Error (catchIOError, isDoesNotExistError)
@@ -78,6 +78,17 @@ instance Tasty.IsOption FilterOption where
   optionCLParser = Tasty.mkOptionCLParser (OptParse.metavar "CATEGORIES")
 
 --------------------------------------------------------------------------------
+newtype AllOnSuccess = AllOnSuccess Bool
+  deriving (Typeable)
+
+instance Tasty.IsOption AllOnSuccess where
+  optionName = return "rerun-all-on-success"
+  optionHelp = return "If according to the log file and --rerun-filter there is nothing left to rerun, run all tests. This comes especially handy in `stack test --file-watch` or `ghcid` scenarios."
+  defaultValue = AllOnSuccess False
+  parseValue = fmap AllOnSuccess . Tasty.safeReadBool
+  optionCLParser = Tasty.mkFlagCLParser mempty (AllOnSuccess True)
+
+--------------------------------------------------------------------------------
 data TestResult = Completed Bool | ThrewException
   deriving (Read, Show)
 
@@ -123,9 +134,14 @@ rerunningTests ingredients =
     \options testTree -> Just $ do
       let RerunLogFile stateFile = Tasty.lookupOption options
           UpdateLog updateLog = Tasty.lookupOption options
+          AllOnSuccess allOnSuccess = Tasty.lookupOption options
           FilterOption filter = Tasty.lookupOption options
 
-      filteredTestTree <- maybe testTree (filterTestTree testTree filter)
+      let nonEmptyFold = Tasty.trivialFold { Tasty.foldSingle = \_ _ _ -> Any True }
+          nullTestTree = not . getAny . Tasty.foldTestTree nonEmptyFold options
+          recoverFromEmpty t = if allOnSuccess && nullTestTree t then testTree else t
+
+      filteredTestTree <- maybe testTree (recoverFromEmpty . filterTestTree testTree filter)
                            <$> tryLoadStateFrom stateFile
 
       let tryAndRun (Tasty.TestReporter _ f) = do
@@ -161,6 +177,7 @@ rerunningTests ingredients =
   where
   rerunOptions = [ Tasty.Option (Proxy :: Proxy UpdateLog)
                  , Tasty.Option (Proxy :: Proxy FilterOption)
+                 , Tasty.Option (Proxy :: Proxy AllOnSuccess)
                  , Tasty.Option (Proxy :: Proxy RerunLogFile)
                  ]
 
