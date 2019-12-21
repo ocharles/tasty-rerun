@@ -68,4 +68,3 @@ Use `--help` to list command-line options:
 * `--rerun-log-file FILE`
 
   Location of the log file (default: `.tasty-rerun-log`).
-```
