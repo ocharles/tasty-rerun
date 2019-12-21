@@ -108,10 +108,23 @@ data TestResult = Completed Bool | ThrewException
 
 
 --------------------------------------------------------------------------------
--- | This 'Tasty.Ingredient' transformer allows to control
--- which tests to run depending on their previous outcomes.
--- For example, you can rerun only failing tests or only new tests.
+-- |
+-- This ingredient
+-- for <https://hackage.haskell.org/package/tasty tasty> testing framework
+-- allows to filter a test tree depending
+-- on an outcome of the previous run.
+-- This may be useful in many scenarios,
+-- especially when a test suite grows large.
+--
 -- The behaviour is controlled by command-line options:
+--
+-- * @--rerun@ @ @
+--
+--     Rerun only tests, which failed during the last run.
+--     If the last run was successful, execute a full test
+--     suite afresh. A shortcut for @--rerun-update@
+--     @--rerun-filter failures,exceptions@
+--     @--rerun-all-on-success@.
 --
 -- * @--rerun-update@ @ @
 --
@@ -123,6 +136,13 @@ data TestResult = Completed Bool | ThrewException
 --     comma-separated list of categories: @failures@,
 --     @exceptions@, @new@, @successful@. If this option is
 --     omitted or the log file is missing, rerun everything.
+--
+-- * @--rerun-all-on-success@ @ @
+--
+--     If according to the log file and @--rerun-filter@ there
+--     is nothing left to rerun, run all tests. This comes
+--     especially handy in @stack test --file-watch@ or
+--     @ghcid@ scenarios.
 --
 -- * @--rerun-log-file@ @FILE@
 --

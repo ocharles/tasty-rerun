@@ -1,3 +1,8 @@
+# 1.1.16
+
+* New command-line option `--rerun-all-on-success`.
+* New command-line shortcut `--rerun`.
+
 # 1.1.15
 
 * Bump upper bound of base.
