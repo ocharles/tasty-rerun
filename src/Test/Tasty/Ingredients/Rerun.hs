@@ -1,6 +1,60 @@
+-- |
+-- Module:      Test.Tasty.Ingredients.Rerun
+-- Copyright:   Oliver Charles (c) 2014, Andrew Lelechenko (c) 2019
+-- Licence:     BSD3
+--
+-- This ingredient
+-- for <https://hackage.haskell.org/package/tasty tasty> testing framework
+-- allows to filter a test tree depending
+-- on an outcome of the previous run.
+-- This may be useful in many scenarios,
+-- especially when a test suite grows large.
+--
+-- The behaviour is controlled by command-line options:
+--
+-- * @--rerun@ @ @
+--
+--     Rerun only tests, which failed during the last run.
+--     If the last run was successful, execute a full test
+--     suite afresh. A shortcut for @--rerun-update@
+--     @--rerun-filter failures,exceptions@
+--     @--rerun-all-on-success@.
+--
+-- * @--rerun-update@ @ @
+--
+--     Update the log file to reflect latest test outcomes.
+--
+-- * @--rerun-filter@ @CATEGORIES@
+--
+--     Read the log file and rerun only tests from a given
+--     comma-separated list of categories: @failures@,
+--     @exceptions@, @new@, @successful@. If this option is
+--     omitted or the log file is missing, rerun everything.
+--
+-- * @--rerun-all-on-success@ @ @
+--
+--     If according to the log file and @--rerun-filter@ there
+--     is nothing left to rerun, run all tests. This comes
+--     especially handy in @stack test --file-watch@ or
+--     @ghcid@ scenarios.
+--
+-- * @--rerun-log-file@ @FILE@
+--
+--     Location of the log file (default: @.tasty-rerun-log@).
+--
+-- To add it to your test suite just replace
+-- 'Tasty.defaultMain' with
+-- 'defaultMainWithRerun' or wrap arguments
+-- of 'Tasty.defaultMainWithIngredients'
+-- into 'rerunningTests'.
+
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
-module Test.Tasty.Ingredients.Rerun (rerunningTests) where
+
+module Test.Tasty.Ingredients.Rerun
+  ( defaultMainWithRerun
+  , rerunningTests
+  ) where
 
 import Prelude hiding (filter)
 
@@ -108,47 +162,24 @@ data TestResult = Completed Bool | ThrewException
 
 
 --------------------------------------------------------------------------------
--- |
--- This ingredient
--- for <https://hackage.haskell.org/package/tasty tasty> testing framework
--- allows to filter a test tree depending
--- on an outcome of the previous run.
--- This may be useful in many scenarios,
--- especially when a test suite grows large.
+
+-- | Drop-in replacement for 'Tasty.defaultMain'.
 --
--- The behaviour is controlled by command-line options:
---
--- * @--rerun@ @ @
---
---     Rerun only tests, which failed during the last run.
---     If the last run was successful, execute a full test
---     suite afresh. A shortcut for @--rerun-update@
---     @--rerun-filter failures,exceptions@
---     @--rerun-all-on-success@.
---
--- * @--rerun-update@ @ @
---
---     Update the log file to reflect latest test outcomes.
---
--- * @--rerun-filter@ @CATEGORIES@
---
---     Read the log file and rerun only tests from a given
---     comma-separated list of categories: @failures@,
---     @exceptions@, @new@, @successful@. If this option is
---     omitted or the log file is missing, rerun everything.
---
--- * @--rerun-all-on-success@ @ @
---
---     If according to the log file and @--rerun-filter@ there
---     is nothing left to rerun, run all tests. This comes
---     especially handy in @stack test --file-watch@ or
---     @ghcid@ scenarios.
---
--- * @--rerun-log-file@ @FILE@
---
---     Location of the log file (default: @.tasty-rerun-log@).
---
--- Usage example:
+-- > import Test.Tasty
+-- > import Test.Tasty.Ingredients.Rerun
+-- >
+-- > main :: IO ()
+-- > main = defaultMainWithRerun tests
+-- >
+-- > tests :: TestTree
+-- > tests = undefined
+defaultMainWithRerun :: Tasty.TestTree -> IO ()
+defaultMainWithRerun =
+  Tasty.defaultMainWithIngredients
+    [ rerunningTests [ Tasty.listingTests, Tasty.consoleTestReporter ] ]
+
+-- | Ingredient transformer, to use with
+-- 'Tasty.defaultMainWithIngredients'.
 --
 -- > import Test.Tasty
 -- > import Test.Tasty.Runners

@@ -1,3 +1,8 @@
+# 1.1.17
+
+* Add `defaultMainWithRerun`,
+  a drop-in replacement for `defaultMain`.
+
 # 1.1.16
 
 * New command-line option `--rerun-all-on-success`.

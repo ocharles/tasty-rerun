@@ -20,18 +20,15 @@ For example, `tasty-rerun` allows:
   (e. g., an external service is temporarily down), but you want be sure
   that you are not breaking anything else in course of your work.
 
-Add it to your test suite as follows:
+To add it to your test suite just replace `Test.Tasty.defaultMain`
+with `Test.Tasty.Ingredients.Rerun.defaultMainWithRerun`:
 
 ```haskell
 import Test.Tasty
-import Test.Tasty.Runners
 import Test.Tasty.Ingredients.Rerun
 
 main :: IO ()
-main =
-  defaultMainWithIngredients
-    [ rerunningTests [ listingTests, consoleTestReporter ] ]
-    tests
+main = defaultMainWithRerun tests
 
 tests :: TestTree
 tests = undefined
