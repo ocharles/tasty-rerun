@@ -19,9 +19,9 @@ synopsis:
 
 description:
   This ingredient
-  for <https://hackage.haskell.org/package/tasty tasty> testing framework
-  allows to filter a test tree depending
-  on an outcome of the previous run.
+  for the <https://hackage.haskell.org/package/tasty tasty> testing framework
+  allows filtering a test tree depending
+  on the outcome of the previous run.
   This may be useful in many scenarios,
   especially when a test suite grows large.
 
