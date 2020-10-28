@@ -1,3 +1,7 @@
+# 1.1.18
+
+* Support tasty 1.4.
+
 # 1.1.17
 
 * Add `defaultMainWithRerun`,
