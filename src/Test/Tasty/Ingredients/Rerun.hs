@@ -48,6 +48,7 @@
 -- of 'Tasty.defaultMainWithIngredients'
 -- into 'rerunningTests'.
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 
@@ -56,7 +57,7 @@ module Test.Tasty.Ingredients.Rerun
   , rerunningTests
   ) where
 
-import Prelude hiding (filter)
+import Prelude hiding (filter, mempty)
 
 import Control.Applicative
 import Control.Arrow ((>>>))
@@ -316,7 +317,11 @@ rerunningTests ingredients =
 
     in Tasty.trivialFold
       { Tasty.foldSingle = foldSingle
+#if MIN_VERSION_tasty(1,4,0)
+      , Tasty.foldGroup = const foldGroup
+#else
       , Tasty.foldGroup = foldGroup
+#endif
       }
 
     where
