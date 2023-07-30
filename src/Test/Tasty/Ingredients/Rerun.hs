@@ -57,21 +57,30 @@ module Test.Tasty.Ingredients.Rerun
   , rerunningTests
   ) where
 
-import Prelude hiding (filter, mempty)
+import Prelude (Enum, Bounded, minBound, maxBound, error, (+))
 
-import Control.Applicative (Const(..))
+import Control.Applicative (Const(..), (<$>), pure, (<$))
 import Control.Arrow ((>>>))
-import Control.Monad (when)
+import Control.Monad (when, return, fmap, mapM, (>>=))
 import Control.Monad.Trans.Class (lift)
+import Data.Bool (Bool (..), otherwise, not, (&&))
 import Data.Char (isSpace, toLower)
+import Data.Eq (Eq)
 import Data.Foldable (asum)
-import Data.List (intercalate)
+import Data.Function ((.), ($), flip, const)
+import Data.Int (Int)
+import Data.List (intercalate, lookup, map, (++), reverse, dropWhile)
 import Data.List.Split (endBy)
-import Data.Maybe (fromMaybe)
-import Data.Monoid (Any(..), mempty)
+import Data.Maybe (fromMaybe, Maybe(..), maybe)
+import Data.Monoid (Any(..), Monoid(..))
+import Data.Ord (Ord)
 import Data.Proxy (Proxy(..))
+import Data.String (String)
 import Data.Typeable (Typeable)
-import System.IO.Error (catchIOError, isDoesNotExistError)
+import System.IO (FilePath, IO, readFile, writeFile)
+import System.IO.Error (catchIOError, isDoesNotExistError, ioError)
+import Text.Read (Read, read)
+import Text.Show (Show, show)
 
 import qualified Control.Concurrent.STM as STM
 import qualified Control.Monad.State as State
