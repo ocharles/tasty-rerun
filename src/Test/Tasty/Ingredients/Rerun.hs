@@ -59,7 +59,7 @@ module Test.Tasty.Ingredients.Rerun
 
 import Prelude hiding (filter, mempty)
 
-import Control.Applicative
+import Control.Applicative (Const(..))
 import Control.Arrow ((>>>))
 import Control.Monad (when)
 import Control.Monad.Trans.Class (lift)
@@ -317,7 +317,9 @@ rerunningTests ingredients =
 
     in Tasty.trivialFold
       { Tasty.foldSingle = foldSingle
-#if MIN_VERSION_tasty(1,4,0)
+#if MIN_VERSION_tasty(1,5,0)
+      , Tasty.foldGroup = const (\name -> foldGroup name . mconcat)
+#elif MIN_VERSION_tasty(1,4,0)
       , Tasty.foldGroup = const foldGroup
 #else
       , Tasty.foldGroup = foldGroup
