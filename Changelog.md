@@ -1,3 +1,7 @@
+# 1.1.19
+
+* Support tasty 1.5.
+
 # 1.1.18
 
 * Support tasty 1.4.
