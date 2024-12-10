@@ -27,8 +27,7 @@ description:
 
 tested-with:
   GHC==9.12.1, GHC==9.10.1, GHC==9.8.4,
-  GHC==9.6.6, GHC==9.4.5, GHC==9.2.8, GHC==9.0.2, GHC==8.10.7,
-  GHC==8.8.4, GHC==8.6.5, GHC==8.4.4, GHC==8.2.2, GHC==8.0.2
+  GHC==9.6.6, GHC==9.4.8, GHC==9.2.8, GHC==9.0.2
 
 source-repository head
   type: git
@@ -37,7 +36,7 @@ source-repository head
 library
   exposed-modules:     Test.Tasty.Ingredients.Rerun
   build-depends:
-    base >=4.9 && <4.22,
+    base >=4.15 && <4.22,
     containers >= 0.5.0.0 && < 0.8,
     mtl >= 2.1.2 && < 2.4,
     optparse-applicative >= 0.6 && < 0.19,

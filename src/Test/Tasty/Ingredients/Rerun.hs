@@ -75,7 +75,7 @@ import Data.Monoid (Any(..), Monoid(..))
 import Data.Ord (Ord)
 import Data.Proxy (Proxy(..))
 import Data.String (String)
-import System.IO (FilePath, IO, readFile, writeFile)
+import System.IO (FilePath, IO, readFile', writeFile)
 import System.IO.Error (catchIOError, isDoesNotExistError, ioError)
 import Text.Read (Read, read)
 import Text.Show (Show, show)
@@ -282,7 +282,7 @@ rerunningTests ingredients =
 
   tryLoadStateFrom :: FilePath -> IO (Maybe (Map.Map [String] TestResult))
   tryLoadStateFrom filePath = do
-    fileContents <- (Just <$> readFile filePath)
+    fileContents <- (Just <$> readFile' filePath)
                       `catchIOError` (\e -> if isDoesNotExistError e
                                               then return Nothing
                                               else ioError e)
