@@ -49,7 +49,6 @@
 -- into 'rerunningTests'.
 
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Test.Tasty.Ingredients.Rerun
@@ -76,7 +75,6 @@ import Data.Monoid (Any(..), Monoid(..))
 import Data.Ord (Ord)
 import Data.Proxy (Proxy(..))
 import Data.String (String)
-import Data.Typeable (Typeable)
 import System.IO (FilePath, IO, readFile, writeFile)
 import System.IO.Error (catchIOError, isDoesNotExistError, ioError)
 import Text.Read (Read, read)
@@ -94,7 +92,6 @@ import qualified Test.Tasty.Runners as Tasty
 
 --------------------------------------------------------------------------------
 newtype RerunLogFile = RerunLogFile FilePath
-  deriving (Typeable)
 
 instance Tasty.IsOption RerunLogFile where
   optionName = return "rerun-log-file"
@@ -105,7 +102,6 @@ instance Tasty.IsOption RerunLogFile where
 
 --------------------------------------------------------------------------------
 newtype UpdateLog = UpdateLog Bool
-  deriving (Typeable)
 
 instance Tasty.IsOption UpdateLog where
   optionName = return "rerun-update"
@@ -127,7 +123,6 @@ everything = [minBound..maxBound]
 
 --------------------------------------------------------------------------------
 newtype FilterOption = FilterOption (Set.Set Filter)
-  deriving (Typeable)
 
 instance Tasty.IsOption FilterOption where
   optionName = return "rerun-filter"
@@ -143,7 +138,6 @@ instance Tasty.IsOption FilterOption where
 
 --------------------------------------------------------------------------------
 newtype AllOnSuccess = AllOnSuccess Bool
-  deriving (Typeable)
 
 instance Tasty.IsOption AllOnSuccess where
   optionName = return "rerun-all-on-success"
@@ -154,7 +148,6 @@ instance Tasty.IsOption AllOnSuccess where
 
 --------------------------------------------------------------------------------
 newtype Rerun = Rerun { unRerun :: Bool }
-  deriving (Typeable)
 
 instance Tasty.IsOption Rerun where
   optionName = return "rerun"
