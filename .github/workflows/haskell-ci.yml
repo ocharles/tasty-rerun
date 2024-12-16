@@ -48,9 +48,9 @@ jobs:
             compilerVersion: 9.6.6
             setup-method: ghcup
             allow-failure: false
-          - compiler: ghc-9.4.5
+          - compiler: ghc-9.4.8
             compilerKind: ghc
-            compilerVersion: 9.4.5
+            compilerVersion: 9.4.8
             setup-method: ghcup
             allow-failure: false
           - compiler: ghc-9.2.8
@@ -63,42 +63,12 @@ jobs:
             compilerVersion: 9.0.2
             setup-method: ghcup
             allow-failure: false
-          - compiler: ghc-8.10.7
-            compilerKind: ghc
-            compilerVersion: 8.10.7
-            setup-method: ghcup
-            allow-failure: false
-          - compiler: ghc-8.8.4
-            compilerKind: ghc
-            compilerVersion: 8.8.4
-            setup-method: ghcup
-            allow-failure: false
-          - compiler: ghc-8.6.5
-            compilerKind: ghc
-            compilerVersion: 8.6.5
-            setup-method: ghcup
-            allow-failure: false
-          - compiler: ghc-8.4.4
-            compilerKind: ghc
-            compilerVersion: 8.4.4
-            setup-method: ghcup
-            allow-failure: false
-          - compiler: ghc-8.2.2
-            compilerKind: ghc
-            compilerVersion: 8.2.2
-            setup-method: ghcup
-            allow-failure: false
-          - compiler: ghc-8.0.2
-            compilerKind: ghc
-            compilerVersion: 8.0.2
-            setup-method: ghcup
-            allow-failure: false
       fail-fast: false
     steps:
       - name: apt-get install
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends gnupg ca-certificates dirmngr curl git software-properties-common libtinfo5 libnuma-dev
+          apt-get install -y --no-install-recommends gnupg ca-certificates dirmngr curl git software-properties-common libtinfo5
       - name: Install GHCup
         run: |
           mkdir -p "$HOME/.ghcup/bin"
@@ -234,8 +204,8 @@ jobs:
           touch cabal.project
           touch cabal.project.local
           echo "packages: ${PKGDIR_tasty_rerun}" >> cabal.project
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package tasty-rerun" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
+          echo "package tasty-rerun" >> cabal.project
+          echo "    ghc-options: -Werror=missing-methods" >> cabal.project
           cat >> cabal.project <<EOF
           EOF
           if $HEADHACKAGE; then
