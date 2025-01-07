@@ -75,6 +75,8 @@ import Data.Monoid (Any(..), Monoid(..))
 import Data.Ord (Ord)
 import Data.Proxy (Proxy(..))
 import Data.String (String)
+import System.Environment (getExecutablePath)
+import System.FilePath ((<.>), takeBaseName)
 import System.IO (FilePath, IO, readFile', writeFile)
 import System.IO.Error (catchIOError, isDoesNotExistError, ioError)
 import Text.Read (Read, read)
@@ -91,13 +93,15 @@ import qualified Test.Tasty.Options as Tasty
 import qualified Test.Tasty.Runners as Tasty
 
 --------------------------------------------------------------------------------
-newtype RerunLogFile = RerunLogFile FilePath
+data RerunLogFile
+  = DefaultRerunLogFile
+  | CustomRerunLogFile FilePath
 
 instance Tasty.IsOption RerunLogFile where
   optionName = return "rerun-log-file"
-  optionHelp = return "Location of the log file (default: .tasty-rerun-log)"
-  defaultValue = RerunLogFile ".tasty-rerun-log"
-  parseValue = Just . RerunLogFile
+  optionHelp = return "Location of the log file (default: .tasty-rerun-log.EXECUTABLE, where EXECUTABLE is the base name of the calling program)"
+  defaultValue = DefaultRerunLogFile
+  parseValue = Just . CustomRerunLogFile
   optionCLParser = Tasty.mkOptionCLParser (OptParse.metavar "FILE")
 
 --------------------------------------------------------------------------------
@@ -200,8 +204,13 @@ rerunningTests :: [Tasty.Ingredient] -> Tasty.Ingredient
 rerunningTests ingredients =
   Tasty.TestManager (rerunOptions ++ Tasty.ingredientsOptions ingredients) $
     \options testTree -> Just $ do
-      let RerunLogFile stateFile = Tasty.lookupOption options
-          (UpdateLog updateLog, AllOnSuccess allOnSuccess, FilterOption filter)
+      stateFile <- case Tasty.lookupOption options of
+        DefaultRerunLogFile -> do
+            executableName <- takeBaseName <$> getExecutablePath
+            return (".tasty-rerun-log" <.> executableName)
+        CustomRerunLogFile stateFile -> return stateFile
+
+      let (UpdateLog updateLog, AllOnSuccess allOnSuccess, FilterOption filter)
             | unRerun (Tasty.lookupOption options) = rerunMeaning
             | otherwise = (Tasty.lookupOption options, Tasty.lookupOption options, Tasty.lookupOption options)
 
