@@ -75,7 +75,6 @@ import Data.Monoid (Any(..), Monoid(..))
 import Data.Ord (Ord)
 import Data.Proxy (Proxy(..))
 import Data.String (String)
-import System.Environment (getExecutablePath)
 import System.FilePath ((<.>), takeBaseName)
 import System.IO (FilePath, IO, readFile', writeFile)
 import System.IO.Error (catchIOError, isDoesNotExistError, ioError)
@@ -89,6 +88,7 @@ import qualified Data.IntMap as IntMap
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Options.Applicative as OptParse
+import qualified System.Environment
 import qualified Test.Tasty.Options as Tasty
 import qualified Test.Tasty.Runners as Tasty
 
@@ -206,8 +206,12 @@ rerunningTests ingredients =
     \options testTree -> Just $ do
       stateFile <- case Tasty.lookupOption options of
         DefaultRerunLogFile -> do
-            executableName <- takeBaseName <$> getExecutablePath
-            return (".tasty-rerun-log" <.> executableName)
+            maybeExecutablePath <-
+                fromMaybe (return Nothing) System.Environment.executablePath
+            case maybeExecutablePath of
+                Nothing -> return ".tasty-rerun-log"
+                Just executablePath ->
+                    return (".tasty-rerun-log" <.> takeBaseName executablePath)
         CustomRerunLogFile stateFile -> return stateFile
 
       let (UpdateLog updateLog, AllOnSuccess allOnSuccess, FilterOption filter)
