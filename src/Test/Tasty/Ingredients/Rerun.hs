@@ -78,6 +78,7 @@ import Data.String (String)
 import System.FilePath ((<.>), takeBaseName)
 import System.IO (FilePath, IO, readFile', writeFile)
 import System.IO.Error (catchIOError, isDoesNotExistError, ioError)
+import System.IO.Unsafe (unsafePerformIO)
 import Text.Read (Read, read)
 import Text.Show (Show, show)
 
@@ -99,7 +100,10 @@ data RerunLogFile
 
 instance Tasty.IsOption RerunLogFile where
   optionName = return "rerun-log-file"
-  optionHelp = return "Location of the log file (default: .tasty-rerun-log.EXECUTABLE, where EXECUTABLE is the base name of the calling program)"
+  optionHelp = return
+    ( "Location of the log file (default: " ++
+      show (unsafePerformIO getDefaultLogfileName) ++ ")"
+    )
   defaultValue = DefaultRerunLogFile
   parseValue = Just . CustomRerunLogFile
   optionCLParser = Tasty.mkOptionCLParser (OptParse.metavar "FILE")
@@ -205,13 +209,7 @@ rerunningTests ingredients =
   Tasty.TestManager (rerunOptions ++ Tasty.ingredientsOptions ingredients) $
     \options testTree -> Just $ do
       stateFile <- case Tasty.lookupOption options of
-        DefaultRerunLogFile -> do
-            maybeExecutablePath <-
-                fromMaybe (return Nothing) System.Environment.executablePath
-            case maybeExecutablePath of
-                Nothing -> return ".tasty-rerun-log"
-                Just executablePath ->
-                    return (".tasty-rerun-log" <.> takeBaseName executablePath)
+        DefaultRerunLogFile -> getDefaultLogfileName
         CustomRerunLogFile stateFile -> return stateFile
 
       let (UpdateLog updateLog, AllOnSuccess allOnSuccess, FilterOption filter)
@@ -345,3 +343,24 @@ rerunningTests ingredients =
     lookupStatus i = STM.readTVar $
       fromMaybe (error "Attempted to lookup test by index outside bounds")
                 (IntMap.lookup i statusMap)
+
+-- | Get the default log file name.
+-- Whether a package-wide or a per-component log file name is returned depends
+-- on the possibility to determine the path to the test executable reliably; See
+-- 'System.Environment.executablePath'.
+getDefaultLogfileName :: IO FilePath
+getDefaultLogfileName =
+  logfileName <$>
+    fromMaybe (return Nothing) System.Environment.executablePath
+
+-- | Returns the default log file name.
+-- The argument passed should be the file path of the test executable, if that
+-- path is available. If @Nothing@ is passed, then a package-wide log file name
+-- is returned, which may lead to problems; See
+-- https://github.com/ocharles/tasty-rerun/issues/22 .
+logfileName
+  :: Maybe FilePath -- ^ The file path of the test executable.
+  -> String -- ^ The Tasty Rerun log file name.
+logfileName Nothing = ".tasty-rerun-log"
+logfileName (Just executablePath) =
+    logfileName Nothing <.> takeBaseName executablePath
