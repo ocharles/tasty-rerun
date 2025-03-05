@@ -1,3 +1,8 @@
+# 1.1.20
+
+* Append the base name of the calling executable to the name of the default log file.
+* Use `System.IO.readFile'` to read the state.
+
 # 1.1.19
 
 * Support tasty 1.5.
