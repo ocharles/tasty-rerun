@@ -48,9 +48,6 @@
 -- of 'Tasty.defaultMainWithIngredients'
 -- into 'rerunningTests'.
 
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE FlexibleContexts #-}
-
 module Test.Tasty.Ingredients.Rerun
   ( defaultMainWithRerun
   , rerunningTests
@@ -330,13 +327,7 @@ rerunningTests ingredients =
 
     in Tasty.trivialFold
       { Tasty.foldSingle = foldSingle
-#if MIN_VERSION_tasty(1,5,0)
       , Tasty.foldGroup = const (\name -> foldGroup name . mconcat)
-#elif MIN_VERSION_tasty(1,4,0)
-      , Tasty.foldGroup = const foldGroup
-#else
-      , Tasty.foldGroup = foldGroup
-#endif
       }
 
     where
