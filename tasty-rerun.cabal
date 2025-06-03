@@ -10,7 +10,7 @@ copyright:
 maintainer:      ollie@ocharles.org.uk
 author:          Oliver Charles
 tested-with:
-    ghc ==9.12.1 ghc ==9.10.1 ghc ==9.8.4 ghc ==9.6.6 ghc ==9.4.8
+    ghc ==9.12.2 ghc ==9.10.2 ghc ==9.8.4 ghc ==9.6.7 ghc ==9.4.8
 
 homepage:        http://github.com/ocharles/tasty-rerun
 synopsis:        Rerun only tests which failed in a previous test run
